@@ -22,11 +22,13 @@ duplicateElements(List) ->
 duplicateElements([], Acc) ->
   Acc;
 duplicateElements([Head | Tail], Acc) ->
-  duplicateElements(Tail, Acc ++ [Head] ++ [Head]).
+  duplicateElements(Tail, Acc ++ [Head, Head]).
 
 sumFloats(List) ->
   sumFloats(List, 0.0).
 sumFloats([], Sum) ->
   Sum;
-sumFloats([Head | Tail], Sum) ->
-  sumFloats(Tail, Sum + Head).
+sumFloats([Head | Tail], Sum) when is_float(Head)->
+  sumFloats(Tail, Sum + Head);
+sumFloats([_ | Tail], Sum) ->
+  sumFloats(Tail, Sum).
