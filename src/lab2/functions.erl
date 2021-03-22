@@ -17,6 +17,9 @@ map(Fun, List) ->
 filter(Fun, List) ->
   [X || X <- List, Fun(X)].
 
+%% functions:map(fun(X) -> 2 * X end, [1, 2, 3, 4]).
+%% functions:filter(fun(X) -> X rem 2 == 0 end, [1, 2, 3, 4]).
+
 digitsSum(X) ->
   lists:foldl(fun (A, B) -> A + B -$0 end, 0, integer_to_list(X)).
 

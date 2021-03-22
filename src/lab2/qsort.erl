@@ -16,6 +16,7 @@ lessThan(List, Arg) ->
   [X || X <- List, X < Arg].
 grtEqThan(List, Arg) ->
   [X || X <- List, X >= Arg].
+
 qs([]) ->
   [];
 qs([Pivot|Tail]) ->
@@ -23,9 +24,10 @@ qs([Pivot|Tail]) ->
 
 randomElems(N, Min, Max) ->
   [Min + rand:uniform(Max - Min) || _ <- lists:seq(1, N)].
+
 compareSpeeds(List, Fun1, Fun2) ->
-  Times = [timer:tc(X, [List]) || X <- [Fun1, Fun2]],
-  [Time1, Time2] = [X || {X, _} <- Times],
+  {Time1, _} = timer:tc(Fun1, [List]),
+  {Time2, _} = timer:tc(Fun2, [List]),
   io:format("First function's time ~p~n", [Time1]),
   io:format("Second function's time ~p~n", [Time2]).
 
