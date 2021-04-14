@@ -17,16 +17,17 @@
   findMinDistancesSequential/2,
   findMinDistancesParallel/2,
   findMinDistanceParallel/2,
-  collectData/4,
+  collectData/3,
   findMinDistancesSemiParallel/2,
-  findSomeMinDistancesSemiParallel/2
+  findSomeMinDistancesSemiParallel/2,
+  compareSpeeds/2
 ]).
 
 
-getLocations(LockersNumber, PeopleNumber) ->
+getLocations(PeopleNumber, LockersNumber) ->
   LockerLocations = [{X, Y} || X <- qsort:randomElems(LockersNumber, 0, 10), Y <- qsort:randomElems(LockersNumber, 0, 10)],
   PeopleLocations = [{X, Y} || X <- qsort:randomElems(PeopleNumber, 0, 10), Y <- qsort:randomElems(PeopleNumber, 0, 10)],
-  {LockerLocations, PeopleLocations}.
+  {PeopleLocations, LockerLocations}.
 
 
 dist({X1, Y1}, {X2, Y2}) ->
@@ -40,10 +41,8 @@ findMyLocker(PersonLocation, LockerLocations) ->
 
 %% SEQUENTIAL
 findMinDistancesSequential(PeopleLocations, LockerLocations) ->
-  {_, StartTime, _} = now(),
-  Result = [findMyLocker(Person, LockerLocations) || Person <- PeopleLocations],
-  {_, EndTime, _} = now(),
-  io:format("Sequential time: ~p seconds ~n", [EndTime - StartTime]).
+  Result = lists:min([findMyLocker(PersonLocation, LockerLocations) || PersonLocation <- PeopleLocations]),
+  io:format("Result: ~p~n", [Result]).
 
 
 %% FULL PARALLEL
@@ -52,9 +51,7 @@ findMinDistanceParallel(PersonLocation, LockerLocations) ->
 
 
 findMinDistancesParallel(PeopleLocations, LockerLocations) ->
-  {_, StartTime, _} = now(),
-  Pid = spawn(fun() -> collectData(0, length(PeopleLocations), [], StartTime) end),
-  register(fullParallel, Pid),
+  register(fullParallel, spawn(fun() -> collectData(0, length(PeopleLocations), []) end)),
   [spawn(fun() -> findMinDistanceParallel(PersonLocation, LockerLocations) end) || PersonLocation <- PeopleLocations].
 
 
@@ -64,9 +61,7 @@ findSomeMinDistancesSemiParallel(PeopleLocations, LockerLocations) ->
 
 
 findMinDistancesSemiParallel(PeopleLocations, LockerLocations) ->
-  {_, StartTime, _} = now(),
-  Pid = spawn(fun() -> collectData(0, length(PeopleLocations), [], StartTime) end),
-  register(semiParallel, Pid),
+  register(semiParallel, spawn(fun() -> collectData(0, length(PeopleLocations), []) end)),
   {Part12, Part34} = lists:split(trunc(length(PeopleLocations) / 2), PeopleLocations),
   {Part1, Part2} = lists:split(trunc(length(Part12) / 2), Part12),
   {Part3, Part4} = lists:split(trunc(length(Part34) / 2), Part34),
@@ -76,13 +71,22 @@ findMinDistancesSemiParallel(PeopleLocations, LockerLocations) ->
   spawn(fun() -> findSomeMinDistancesSemiParallel(Part4, LockerLocations) end).
 
 
-collectData(ReceivedNumber, AllNumber, Result,  StartTime) when ReceivedNumber == AllNumber ->
-  {_, EndTime, _} = now(),
-  io:format("Result: ~p ~n", [Result]),
-  io:format("Full parallel time: ~p seconds ~n", [EndTime - StartTime]);
+collectData(ReceivedNumber, AllNumber, Result) when ReceivedNumber == AllNumber ->
+  io:format("Result: ~p ~n", [lists:min(Result)]);
 
 
-collectData(ReceivedNumber, AllNumber, Result, StartTime) ->
+collectData(ReceivedNumber, AllNumber, Result) ->
   receive
-    Data -> collectData(ReceivedNumber + 1, AllNumber, [Data | Result], StartTime)
+    Data -> collectData(ReceivedNumber + 1, AllNumber, [Data | Result])
   end.
+
+
+%% COMPARE
+compareSpeeds(PeopleNumber, LockersNumber) ->
+  {PeopleLocations, LockerLocations} = getLocations(PeopleNumber, LockersNumber),
+  {TimeSeq, _} = timer:tc(fun() -> findMinDistancesSequential(PeopleLocations, LockerLocations) end),
+  {TimeParallel, _} = timer:tc(fun() -> findMinDistancesParallel(PeopleLocations, LockerLocations) end),
+  {TimeSemiParallel, _} = timer:tc(fun() -> findMinDistancesSemiParallel(PeopleLocations, LockerLocations) end),
+  io:format("Sequential time: ~p us ~n", [TimeSeq]),
+  io:format("Parallel time: ~p us ~n", [TimeParallel]),
+  io:format("Semi Parallel time: ~p us ~n", [TimeSemiParallel]).

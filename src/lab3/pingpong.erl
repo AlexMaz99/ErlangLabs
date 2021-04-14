@@ -50,10 +50,13 @@ pong(Sum) ->
     total ->
       io:format("Pong: total ~p ~n", [Sum]),
       pong(Sum);
-    N ->
-      io:format("Pong: ~p ~n", [N]),
+    0 ->
+      ping ! 0,
+      pong(Sum);
+    N when N > 0 ->
+      io:format("Pong: ~p ~n", [N-1]),
       timer:sleep(1000),
-      ping ! N,
+      ping ! (N-1),
       pong(Sum + 1)
   after 20000 ->
     io:format("Pong: timeout ~n"),
