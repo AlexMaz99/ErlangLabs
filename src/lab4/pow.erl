@@ -34,6 +34,6 @@ handle_call(read,_From, N)      -> {reply, N, N};
 handle_call(terminate,_From,N) -> {stop, normal, ok, N};
 handle_call({setValue, Value}, _From, _) -> {reply, Value, Value}.
 
-handle_info(Message, N) -> {noreply, N}.
+handle_info(_, N) -> {noreply, N}.
 
 terminate(normal, N) -> io:format("The number is: ~B~nBye.~n",[N]), ok.

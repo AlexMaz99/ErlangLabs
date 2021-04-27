@@ -15,6 +15,7 @@
 -export([
   start_link/0,
   crash/0,
+  close/0,
   addStation/2,
   addValue/4,
   removeValue/3,
@@ -30,12 +31,13 @@
 
 
 %% START %%
-start_link() -> gen_server:start_link({local,?MODULE}, ?MODULE, pollution:createMonitor(), []).
-init(N) -> {ok,N}.
+start_link() -> gen_server:start_link({local,?MODULE}, ?MODULE, [], []).
+init(_) -> {ok, pollution:createMonitor()}.
 
 
 %% INTERFACE CLIENT -> SERVER %%
 crash() -> gen_server:cast(?MODULE, crash).
+close() -> gen_server:call(?MODULE, terminate).
 addStation(StationName, Coords) -> gen_server:call(?MODULE, {addStation, StationName, Coords}).
 addValue(Station, Date, Type, Value) -> gen_server:call(?MODULE, {addValue, Station, Date, Type, Value}).
 removeValue(Station, Date, Type) -> gen_server:call(?MODULE, {removeValue, Station, Date, Type}).
@@ -50,21 +52,23 @@ getDailyAverageDataCount() -> gen_server:call(?MODULE, {getDailyAverageDataCount
 
 
 %% HANDLE MESSAGES %%
+handle_call(terminate,_From, Monitor) -> {stop, normal, ok, Monitor};
+
 handle_call({addStation, StationName, Coords}, _From, Monitor) ->
   case pollution:addStation(StationName, Coords, Monitor) of
-    {error, Msg} -> {reply, Msg, Monitor};
+    {error, Msg} -> {reply,{error, Msg}, Monitor};
     NewMonitor -> {reply, ok, NewMonitor}
   end;
 
 handle_call({addValue, Station, Date, Type, Value}, _From, Monitor) ->
   case pollution:addValue(Station, Date, Type, Value, Monitor) of
-    {error, Msg} -> {reply, Msg, Monitor};
+    {error, Msg} -> {reply, {error, Msg}, Monitor};
     NewMonitor -> {reply, ok, NewMonitor}
   end;
 
 handle_call({removeValue, Station, Date, Type}, _From, Monitor) ->
   case pollution:removeValue(Station, Date, Type, Monitor) of
-    {error, Msg} -> {reply, Msg, Monitor};
+    {error, Msg} -> {reply, {error, Msg}, Monitor};
     NewMonitor -> {reply, ok, NewMonitor}
   end;
 
